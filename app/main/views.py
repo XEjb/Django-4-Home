@@ -8,7 +8,7 @@ def index(request):
         'content': 'Главная страница',
         'list': ['first', 'second'],
         'dict': {'first': 1},
-        'bool': True
+        'is_authenticated': True
     }
     return render(request, 'main/index.html', context)
 
