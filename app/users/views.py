@@ -1,4 +1,5 @@
 from django.contrib import auth
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -48,6 +49,7 @@ def registration(request):
     return render(request, 'users/registration.html', context)
 
 
+@login_required
 def profile(request):
     if request.method == 'POST':
         form = ProfileForm(data=request.POST, instance=request.user, files=request.FILES)
@@ -64,6 +66,7 @@ def profile(request):
     return render(request, 'users/profile.html', context)
 
 
+@login_required
 def logout(request):
     auth.logout(request)
     return redirect(reverse('main:index'))
