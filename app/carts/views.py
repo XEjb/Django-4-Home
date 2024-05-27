@@ -2,9 +2,11 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 
-from goods.models import Products
-
 from carts.models import Cart
+
+from carts.utils import get_user_carts
+
+from goods.models import Products
 
 
 def cart_add(request):
@@ -22,6 +24,7 @@ def cart_add(request):
         else:
             Cart.objects.create(user=request.user, product=product, quantity=1)
 
+    user_cart = get_user_carts(request)
     cart_items_html = render_to_string(
         "carts/includes/included_cart.html", {"carts": user_cart}, request=request)
 
