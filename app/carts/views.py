@@ -5,8 +5,10 @@ from goods.models import Products
 from carts.models import Cart
 
 
-def cart_add(request, product_slug):
-    product = Products.objects.get(slug=product_slug)
+def cart_add(request):
+
+    product_id = request.POST.get('product_id')
+    product = Products.objects.get(id=product_id)
 
     if request.user.is_authenticated:
         carts = Cart.objects.filter(user=request.user, product=product)
