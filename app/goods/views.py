@@ -1,6 +1,7 @@
 from django.core.paginator import Paginator
 from django.http import Http404
 from django.shortcuts import render
+from django.views.generic import DetailView
 
 from goods.models import Products
 
@@ -39,11 +40,18 @@ def catalog(request, category_slug=None):
     return render(request, 'goods/catalog.html', context)
 
 
-def product(request, product_slug):
-    product = Products.objects.get(slug=product_slug)
+class ProductView(DetailView):
+    # model = Products
+    # slug_field = "slug"
+    template_name = "goods/product.html"
+    slug_url_kwarg = "product_slug"
+    context_object_name = "product"
 
-    context = {
-        'product': product
-    }
+    def get_object(self, queryset=None):
+        product = Products.objects.get(slug=self.kwargs.get(self.slug_url_kwarg))
+        return product
 
-    return render(request, "goods/product.html", context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.object.name
+        return context
