@@ -5,6 +5,8 @@ from goods.models import Products
 
 from goods.utils import q_search
 
+from goods.models import Categories
+
 
 class CatalogView(ListView):
     model = Products
