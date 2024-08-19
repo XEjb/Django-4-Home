@@ -6,6 +6,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from carts.models import Cart
+from django.views.generic import CreateView
 from orders.models import Order, OrderItem
 
 from users.forms import ProfileForm, UserLoginForm, UserRegistrationForm
@@ -46,29 +47,29 @@ class UserLoginView(LoginView):
         return context
 
 
-def registration(request):
-    if request.method == 'POST':
-        form = UserRegistrationForm(data=request.POST)
-        if form.is_valid():
+class UserRegistrationView(CreateView):
+    template_name = 'users/registration.html'
+    form_class = UserRegistrationForm
+    success_url = reverse_lazy('users:profile')
+
+    def form_valid(self, form):
+        session_key = self.request.session.session_key
+        user = form.instance
+
+        if user:
             form.save()
+            auth.login(self.request, user)
 
-            session_key = request.session.session_key
+        if session_key:
+            Cart.objects.filter(session_key=session_key).update(user=user)
 
-            user = form.instance
-            auth.login(request, user)
+        messages.success(self.request, f"{user.username}, Вы успешно зарегистрированы и вошли в аккаунт")
+        return HttpResponseRedirect(self.success_url)
 
-            if session_key:
-                Cart.objects.filter(session_key=session_key).update(user=user)
-            messages.success(request, f"{user.username}, Вы успешно зарегистрированы и вошли в аккаунт")
-            return HttpResponseRedirect(reverse('main:index'))
-    else:
-        form = UserRegistrationForm()
-
-    context = {
-        'title': 'Home - Регистрация',
-        'form': form
-    }
-    return render(request, 'users/registration.html', context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Home - Регистрация'
+        return context
 
 
 @login_required
