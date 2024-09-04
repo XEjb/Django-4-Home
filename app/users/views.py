@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.contrib import auth, messages
+from django.core.cache import cache
 from django.db.models import Prefetch
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
@@ -88,12 +89,20 @@ class UserProfileView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Home - Кабинет'
-        context['orders'] = Order.objects.filter(user=self.request.user).prefetch_related(
-            Prefetch(
-                "orderitem_set",
-                queryset=OrderItem.objects.select_related("product"),
-            )
-        ).order_by("-id")
+        # Можно вынести сам запрос в отдельный метод этого класса контроллера
+
+        orders = cache.get(f"orders_for_user_{self.request.user.id}")
+        if not orders:
+            orders = Order.objects.filter(user=self.request.user).prefetch_related(
+                Prefetch(
+                    "orderitem_set",
+                    queryset=OrderItem.objects.select_related("product"),
+                )
+            ).order_by("-id")
+
+            cache.set(f"orders_for_user_{self.request.user.id}_orders", 60)
+
+        context['orders'] = orders
         return context
 
 
