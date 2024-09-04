@@ -13,6 +13,8 @@ from orders.models import Order, OrderItem
 
 from users.forms import ProfileForm, UserLoginForm, UserRegistrationForm
 
+from common.mixins import CacheMixin
+
 
 class UserLoginView(LoginView):
     template_name = 'users/login.html'
@@ -74,7 +76,7 @@ class UserRegistrationView(CreateView):
         return context
 
 
-class UserProfileView(LoginRequiredMixin, UpdateView):
+class UserProfileView(LoginRequiredMixin, CacheMixin, UpdateView):
     template_name = 'users/profile.html'
     form_class = ProfileForm
     success_url = reverse_lazy('users:profile')
@@ -83,26 +85,26 @@ class UserProfileView(LoginRequiredMixin, UpdateView):
         return self.request.user
 
     def form_valid(self, form):
-        messages.success(self.request, 'Профайл успешно обновлен')
+        messages.success(self.request, "Профайл успешно обновлен")
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Произошла ошибка")
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Home - Кабинет'
+
         # Можно вынести сам запрос в отдельный метод этого класса контроллера
+        orders = Order.objects.filter(user=self.request.user).prefetch_related(
+            Prefetch(
+                "orderitem_set",
+                queryset=OrderItem.objects.select_related("product"),
+            )
+        ).order_by("-id")
 
-        orders = cache.get(f"orders_for_user_{self.request.user.id}")
-        if not orders:
-            orders = Order.objects.filter(user=self.request.user).prefetch_related(
-                Prefetch(
-                    "orderitem_set",
-                    queryset=OrderItem.objects.select_related("product"),
-                )
-            ).order_by("-id")
-
-            cache.set(f"orders_for_user_{self.request.user.id}_orders", 60)
-
-        context['orders'] = orders
+        context['orders'] = self.set_get_cache(orders, f"user_{self.request.user.id}_orders", 60)
         return context
 
 
